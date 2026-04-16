@@ -7,5 +7,5 @@ from sklearn.model_selection import train_test_split
 from ISLP import load_data
 from ISLP.models import (ModelSpec as MS, summarize)
 
-"""load data here"""
+
 
