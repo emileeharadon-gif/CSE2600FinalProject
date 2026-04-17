@@ -37,9 +37,22 @@ rf_aero = RFR(
     max_features='sqrt',
     random_state=1
 )
+
+#cross validation
+scores = cross_val_score(rf_aero, X_aero, y_aero, cv=5)
+print("Cross validation scores:", scores)
+print("Mean cross validation score:", scores.mean())
+
+
+#fit
 rf_aero.fit(X_train, y_train)
+
 
 #evaluations and feature importance
 #add log loss, oob and whatnot
-rf_aero.score(X_test, y_test)
+error = rf_aero.score(X_test, y_test)
 importances = rf_aero.feature_importances_
+
+
+print("test R^2: ",error)
+print(importances)
