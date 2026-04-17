@@ -13,7 +13,7 @@ Weather = load_data('Weather')
 Aero.dtypes
 Weather.dtypes
 
-X_train, X_test, y_train, y_test, Train, Test = train_test_split(X, y, Aero, 
+X_train, X_test, y_train, y_test, Train, Test = train_test_split(X, y, Aero,                              
                                                                  test_size = 0.25, 
                                                                  shuffle = True)
 
