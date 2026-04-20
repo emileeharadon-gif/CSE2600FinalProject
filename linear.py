@@ -59,8 +59,8 @@ model = sm.OLS(y_train, X_train[[vars_to_include]])
 results = model.fit()
 summarize(results)
 
-predictions_train_1 = predict(X_train[[vars_to_include]],results)
-print('MSE train: ', mse(y_train, predictions_train_1))
+predictions_train = predict(X_train[[vars_to_include]],results)
+print('MSE train: ', mse(y_train, predictions_train))
 
-predictions_test_1 = predict(X_test[[vars_to_include]], results)
-print('MSE test: ', mse(y_test, predictions_test_1))
+predictions_test = predict(X_test[[vars_to_include]], results)
+print('MSE test: ', mse(y_test, predictions_test))
