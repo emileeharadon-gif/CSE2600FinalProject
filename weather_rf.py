@@ -13,20 +13,26 @@ from sklearn.ensemble import \
      (RandomForestRegressor as RFR,
       RandomForestClassifier as RFC,
       GradientBoostingRegressor as GBR)
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 
 
 #read data files
-aero = pd.read_csv("data/Aero.csv")
 weather = pd.read_csv("data/Weather.csv")
 
+#train test split and cleaning
+weather["Time"] = pd.to_timedelta(weather["Time"]).dt.total_seconds()
 
-#targets, might change as needed
-y_weather = weather["TrackTemp"]
-X_weather = weather.drop(columns=["TrackTemp", "Time"])
+weather = weather.sort_values(by='Time')
 
-#train test split
-X_train, X_test, y_train, y_test = train_test_split(X_weather, y_weather, test_size=0.2, random_state=1)
+split = int(len(weather)*.8)
+train = weather.iloc[:split]
+test = weather.iloc[split:]
+
+X_train = train.drop(columns=["TrackTemp", "Round Number", "Year"])
+y_train = train["TrackTemp"]
+
+X_test = test.drop(columns=["TrackTemp", "Round Number", "Year"])
+y_test = test["TrackTemp"]
 
 
 #random forest things TM
@@ -39,7 +45,8 @@ rf_weather = RFR(
 )
 
 #cross validation
-scores = cross_val_score(rf_weather, X_weather, y_weather, cv=5)
+tscv = TimeSeriesSplit(n_splits=5)
+scores = cross_val_score(rf_weather, X_train, y_train, cv=tscv)
 print("Cross validation scores:", scores)
 print("Mean cross validation score:", scores.mean())
 
@@ -56,4 +63,4 @@ importances = rf_weather.feature_importances_
 
 
 print("test R^2: ",error)
-print(importances)
+print("importances: ", importances)
