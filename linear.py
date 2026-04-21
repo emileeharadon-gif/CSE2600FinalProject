@@ -6,6 +6,7 @@ import statsmodels.api as sm
 from sklearn.model_selection import train_test_split 
 from ISLP import load_data
 from ISLP.models import (ModelSpec as MS, summarize)
+from sklearn.preprocessing import StandardScaler
 
 #Helper functions we will need to assess data
 
@@ -46,82 +47,110 @@ def plot_avg_actual_vs_predicted_by_feature(X, y, y_pred, feature, target_name="
 Weather = load_data('Weather')
 
 Weather.dtypes
-indep_vars = ["AirTemp", "Humidity","WindDirection", "WindSpeed"]
 
-X = Weather[indep_vars]
-y = Weather["TrackTemp"]
-
-#train test split and cleaning
+#Train test split and defining variables
 Weather["Time"] = pd.to_timedelta(Weather["Time"]).dt.total_seconds()
 
 weather = Weather.sort_values(by='Time')
+
+indep_vars = ["AirTemp", "Humidity", "WindDirection", "WindSpeed"]
+target = "TrackTemp"
 
 split = int(len(weather)*.8)
 Train = weather.iloc[:split]
 Test = weather.iloc[split:]
 
-X_train = Train.drop(columns=["TrackTemp", "Round Number", "Year"])
-y_train = Train["TrackTemp"]
+X_train = Train[indep_vars].copy()
+y_train = Train[target]
 
-X_test = Test.drop(columns=["TrackTemp", "Round Number", "Year"])
-y_test = Test["TrackTemp"]
+X_test = Test[indep_vars].copy()
+y_test = Test[target]
 
-X_train['intercept'] = np.ones(X_train.shape[0])
-X_test['intercept'] = np.ones(X_test.shape[0])
+#Scale the data
 
-#Create nonlinear effects 
-temp_knot = X_train["AirTemp"].median()
-windspeed_knot = X_train["WindSpeed"].median()
+scaler = StandardScaler()
 
-for df in [Train, Test, X_train, X_test]:
+X_train_scaled = pd.DataFrame(
+    scaler.fit_transform(X_train),
+    columns=X_train.columns,
+    index=X_train.index
+)
+
+X_test_scaled = pd.DataFrame(
+    scaler.transform(X_test),
+    columns=X_test.columns,
+    index=X_test.index
+)
+
+
+# Add nonlinear features
+
+temp_knot = X_train_scaled["AirTemp"].median()
+windspeed_knot = X_train_scaled["WindSpeed"].median()
+
+def add_features(df):
+    df = df.copy()
+
     df["temp_cubicspline"] = np.maximum(0, df["AirTemp"] - temp_knot)**3
-
-for df in [Train, Test, X_train, X_test]:
     df["windspeed_cubicspline"] = np.maximum(0, df["WindSpeed"] - windspeed_knot)**3
 
-for df in [Train, Test, X_train, X_test]:
-    df["temp_windspeed"] = df["WindSpeed"] * df["AirTemp"]
-
-for df in [Train, Test, X_train, X_test]:
+    df["temp_windspeed"] = df["AirTemp"] * df["WindSpeed"]
     df["windspeed_direction"] = df["WindSpeed"] * df["WindDirection"]
+    df["temp_humidity"] = df["AirTemp"] * df["Humidity"]
 
-for df in [Train, Test, X_train, X_test]:
-    df["temp_humidity"] = df["Humidity"] * df["AirTemp"]
+    return df
 
-vars_to_include_1 = ['intercept', indep_vars]
+X_train_fe = add_features(X_train_scaled)
+X_test_fe = add_features(X_test_scaled)
 
-vars_to_include_2 = ['intercept', indep_vars, "temp_windspeed", "windspeed_direction", "temp_humidity", "temp_cubicspline", "windspeed_cubicspline"]
 
-model_1 = sm.OLS(y_train, X_train[[vars_to_include_2]])
+# Add intercept 
+
+X_train_base = sm.add_constant(X_train_scaled)
+X_test_base = sm.add_constant(X_test_scaled)
+
+X_train_full = sm.add_constant(X_train_fe)
+X_test_full = sm.add_constant(X_test_fe)
+
+#Construct models
+
+model_1 = sm.OLS(y_train, X_train_base)
 results_1 = model_1.fit()
 summarize(results_1)
 
-model_nonlinear = sm.OLS(y_train, X_train[[vars_to_include_2]])
+model_nonlinear = sm.OLS(y_train, X_train_full)
 results_2 = model_nonlinear.fit()
 summarize(results_2)
 
-predictions_train_1 = predict(X_train[[vars_to_include_1]],results_1)
-print('MSE train: ', mse(y_train, predictions_train_1))
+#Get predictions
 
-predictions_test_1 = predict(X_test[[vars_to_include_1]], results_1)
+predictions_train_1 = predict(X_train_base,results_1)
+predictions_test_1 = predict(X_test_base, results_1)
+predictions_train_2 = predict(X_train_full,results_2)
+predictions_test_2 = predict(X_test_full, results_2)
+
+#Calculate MSE
+
+print("Model 1 (Linear)")
+print('MSE train: ', mse(y_train, predictions_train_1))
 print('MSE test: ', mse(y_test, predictions_test_1))
 
-predictions_train_2 = predict(X_train[[vars_to_include_2]],results_2)
+print("Model 2 (Nonlinear)")
 print('MSE train: ', mse(y_train, predictions_train_2))
-
-predictions_test_2 = predict(X_test[[vars_to_include_2]], results_2)
 print('MSE test: ', mse(y_test, predictions_test_2))
+
+#Show some plots
 
 plot_avg_actual_vs_predicted_by_feature(X=X_train, 
                                         y=y_train, 
-                                        y_pred=predictions_train_1, 
-                                        feature=vars_to_include_1, 
+                                        y_pred=predictions_train_2, 
+                                        feature="AirTemp", 
                                         target_name="TrackTemp"
                                         )
 
 plot_avg_actual_vs_predicted_by_feature(X=X_train, 
                                         y=y_train, 
                                         y_pred=predictions_train_2, 
-                                        feature=vars_to_include_2, 
+                                        feature="WindSpeed", 
                                         target_name="TrackTemp"
                                         )
