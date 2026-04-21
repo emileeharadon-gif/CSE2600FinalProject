@@ -25,42 +25,72 @@ def mse(y, y_hat):
     MSE = SSR / y.shape[0]
     return MSE
 
-Aero = load_data('Aero')
+#Load data
+Weather = load_data('Weather')
 
-Aero.dtypes
-indep_vars = ["drag_n", "downforce_n", "wind_angle_deg", "stability_index"]
+Weather.dtypes
+indep_vars = ["AirTemp", "Humidity","WindDirection", "WindSpeed"]
 
-X = Aero[indep_vars]
-y = Aero["speed_kmh"]
+X = Weather[indep_vars]
+y = Weather["TrackTemp"]
 
-X_train, X_test, y_train, y_test, Train, Test = train_test_split(X, y, Aero, 
-                                                                 random_state = 4271, 
-                                                                 test_size = 0.25, 
-                                                                 shuffle = True)
+#train test split and cleaning
+Weather["Time"] = pd.to_timedelta(Weather["Time"]).dt.total_seconds()
+
+weather = Weather.sort_values(by='Time')
+
+split = int(len(weather)*.8)
+Train = weather.iloc[:split]
+Test = weather.iloc[split:]
+
+X_train = Train.drop(columns=["TrackTemp", "Round Number", "Year"])
+y_train = Train["TrackTemp"]
+
+X_test = Test.drop(columns=["TrackTemp", "Round Number", "Year"])
+y_test = Test["TrackTemp"]
 
 X_train['intercept'] = np.ones(X_train.shape[0])
 X_test['intercept'] = np.ones(X_test.shape[0])
 
-drag_knot = X_train["drag_n"].median()
-downforce_knot = X_train["downforce_n"].median()
+#Create nonlinear effects 
+temp_knot = X_train["AirTemp"].median()
+windspeed_knot = X_train["WindSpeed"].median()
 
 for df in [Train, Test, X_train, X_test]:
-    df["drag_cubicspline"] = np.maximum(0, df["drag_n"] - drag_knot)**3
+    df["temp_cubicspline"] = np.maximum(0, df["AirTemp"] - temp_knot)**3
 
 for df in [Train, Test, X_train, X_test]:
-    df["downforce_cubicspline"] = np.maximum(0, df["downforce_n"] - downforce_knot)**3
+    df["windspeed_cubicspline"] = np.maximum(0, df["WindSpeed"] - windspeed_knot)**3
 
 for df in [Train, Test, X_train, X_test]:
-    df["drag_downforce"] = df["downforce_n"] * df["drag_n"]
+    df["temp_windspeed"] = df["WindSpeed"] * df["AirTemp"]
 
-vars_to_include = ['intercept', indep_vars, "drag_downforce", "drag_cubicspline", "downforce_cubicspline"]
+for df in [Train, Test, X_train, X_test]:
+    df["windspeed_direction"] = df["WindSpeed"] * df["WindDirection"]
 
-model = sm.OLS(y_train, X_train[[vars_to_include]])
-results = model.fit()
-summarize(results)
+for df in [Train, Test, X_train, X_test]:
+    df["temp_humidity"] = df["Humidity"] * df["AirTemp"]
 
-predictions_train = predict(X_train[[vars_to_include]],results)
+vars_to_include_1 = ['intercept', indep_vars]
+
+vars_to_include_2 = ['intercept', indep_vars, "temp_windspeed", "windspeed_direction", "temp_humidity", "temp_cubicspline", "windspeed_cubicspline"]
+
+model_1 = sm.OLS(y_train, X_train[[vars_to_include_2]])
+results_1 = model_1.fit()
+summarize(results_1)
+
+model_nonlinear = sm.OLS(y_train, X_train[[vars_to_include_2]])
+results_2 = model_nonlinear.fit()
+summarize(results_2)
+
+predictions_train = predict(X_train[[vars_to_include_1]],results_1)
 print('MSE train: ', mse(y_train, predictions_train))
 
-predictions_test = predict(X_test[[vars_to_include]], results)
+predictions_test = predict(X_test[[vars_to_include_1]], results_1)
+print('MSE test: ', mse(y_test, predictions_test))
+
+predictions_train = predict(X_train[[vars_to_include_2]],results_2)
+print('MSE train: ', mse(y_train, predictions_train))
+
+predictions_test = predict(X_test[[vars_to_include_2]], results_2)
 print('MSE test: ', mse(y_test, predictions_test))
