@@ -25,6 +25,23 @@ def mse(y, y_hat):
     MSE = SSR / y.shape[0]
     return MSE
 
+def plot_avg_actual_vs_predicted_by_feature(X, y, y_pred, feature, target_name="Target"):
+    df = pd.DataFrame({
+        feature: X[feature],
+        "actual": y,
+        "predicted": y_pred
+    })
+
+    grouped = df.groupby(feature).mean().reset_index()
+
+    plt.figure()
+    plt.plot(grouped[feature], grouped["actual"], label="Average Actual")
+    plt.plot(grouped[feature], grouped["predicted"], label="Average Predicted")
+    plt.xlabel(feature)
+    plt.ylabel(target_name)
+    plt.legend()
+    plt.show()
+
 #Load data
 Weather = load_data('Weather')
 
@@ -83,14 +100,28 @@ model_nonlinear = sm.OLS(y_train, X_train[[vars_to_include_2]])
 results_2 = model_nonlinear.fit()
 summarize(results_2)
 
-predictions_train = predict(X_train[[vars_to_include_1]],results_1)
-print('MSE train: ', mse(y_train, predictions_train))
+predictions_train_1 = predict(X_train[[vars_to_include_1]],results_1)
+print('MSE train: ', mse(y_train, predictions_train_1))
 
-predictions_test = predict(X_test[[vars_to_include_1]], results_1)
-print('MSE test: ', mse(y_test, predictions_test))
+predictions_test_1 = predict(X_test[[vars_to_include_1]], results_1)
+print('MSE test: ', mse(y_test, predictions_test_1))
 
-predictions_train = predict(X_train[[vars_to_include_2]],results_2)
-print('MSE train: ', mse(y_train, predictions_train))
+predictions_train_2 = predict(X_train[[vars_to_include_2]],results_2)
+print('MSE train: ', mse(y_train, predictions_train_2))
 
-predictions_test = predict(X_test[[vars_to_include_2]], results_2)
-print('MSE test: ', mse(y_test, predictions_test))
+predictions_test_2 = predict(X_test[[vars_to_include_2]], results_2)
+print('MSE test: ', mse(y_test, predictions_test_2))
+
+plot_avg_actual_vs_predicted_by_feature(X=X_train, 
+                                        y=y_train, 
+                                        y_pred=predictions_train_1, 
+                                        feature=vars_to_include_1, 
+                                        target_name="TrackTemp"
+                                        )
+
+plot_avg_actual_vs_predicted_by_feature(X=X_train, 
+                                        y=y_train, 
+                                        y_pred=predictions_train_2, 
+                                        feature=vars_to_include_2, 
+                                        target_name="TrackTemp"
+                                        )
