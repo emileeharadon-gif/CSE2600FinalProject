@@ -28,10 +28,10 @@ split = int(len(weather)*.8)
 train = weather.iloc[:split]
 test = weather.iloc[split:]
 
-X_train = train.drop(columns=["TrackTemp", "Round Number", "Year"])
+X_train = train.drop(columns=["TrackTemp", "Round Number", "Year", "WindDirection"])
 y_train = train["TrackTemp"]
 
-X_test = test.drop(columns=["TrackTemp", "Round Number", "Year"])
+X_test = test.drop(columns=["TrackTemp", "Round Number", "Year", "WindDirection"])
 y_test = test["TrackTemp"]
 
 
