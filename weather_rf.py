@@ -13,7 +13,7 @@ from sklearn.ensemble import \
      (RandomForestRegressor as RFR,
       RandomForestClassifier as RFC,
       GradientBoostingRegressor as GBR)
-from sklearn.model_selection import cross_val_score, TimeSeriesSplit
+from sklearn.model_selection import cross_val_score, GroupKFold
 
 
 #read data files
@@ -21,17 +21,29 @@ weather = pd.read_csv("data/Weather.csv")
 
 #train test split and cleaning
 weather["Time"] = pd.to_timedelta(weather["Time"]).dt.total_seconds()
+weather = weather.sort_values(by=["Year", "Round Number", "Time"])
 
-weather = weather.sort_values(by='Time')
+weather["TrackTemp_lag1"] = weather.groupby(
+    ["Year", "Round Number"]
+)["TrackTemp"].shift(1)
 
-split = int(len(weather)*.8)
-train = weather.iloc[:split]
-test = weather.iloc[split:]
+weather["Time_norm"] = weather.groupby(
+    ["Year", "Round Number"]
+)["Time"].transform(lambda x: x / x.max())
 
-X_train = train.drop(columns=["TrackTemp", "Round Number", "Year", "WindDirection"])
+weather = weather.dropna()
+
+races = weather[["Year", "Round Number"]].drop_duplicates()
+split_idx = int(len(races) * 0.8)
+train_races = races.iloc[:split_idx]
+test_races  = races.iloc[split_idx:]
+train = weather.merge(train_races, on=["Year", "Round Number"])
+test  = weather.merge(test_races,  on=["Year", "Round Number"])
+
+X_train = train.drop(columns=["TrackTemp", "WindDirection"])
 y_train = train["TrackTemp"]
 
-X_test = test.drop(columns=["TrackTemp", "Round Number", "Year", "WindDirection"])
+X_test = test.drop(columns=["TrackTemp", "WindDirection"])
 y_test = test["TrackTemp"]
 
 
@@ -45,8 +57,16 @@ rf_weather = RFR(
 )
 
 #cross validation
-tscv = TimeSeriesSplit(n_splits=5)
-scores = cross_val_score(rf_weather, X_train, y_train, cv=tscv)
+groups = train["Round Number"]
+
+gkf = GroupKFold(n_splits=5)
+scores = cross_val_score(
+    rf_weather,
+    X_train,
+    y_train,
+    cv=gkf,
+    groups=groups
+)
 print("Cross validation scores:", scores)
 print("Mean cross validation score:", scores.mean())
 
