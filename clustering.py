@@ -13,7 +13,7 @@ from sklearn.metrics import mean_absolute_error
 from scipy.cluster.hierarchy import dendrogram, cut_tree
 from ISLP.cluster import compute_linkage
 
-weather = load_data('Weather') #Load the weather dataset
+weather = pd.read_csv('Weather') #Load the weather dataset
 
 # Select features for clustering (excluding TrackTemp)
 # Because we want to predict it from the other features listed, or it will be cheating.
