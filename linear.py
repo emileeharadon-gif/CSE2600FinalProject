@@ -150,6 +150,6 @@ plot_avg_actual_vs_predicted_by_feature(X=X_train,
 plot_avg_actual_vs_predicted_by_feature(X=X_train, 
                                         y=y_train, 
                                         y_pred=predictions_train_2, 
-                                        feature="WindSpeed", 
+                                        feature="Humidity", 
                                         target_name="TrackTemp"
                                         )
