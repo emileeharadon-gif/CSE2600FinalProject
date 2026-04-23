@@ -44,7 +44,7 @@ def plot_avg_actual_vs_predicted_by_feature(X, y, y_pred, feature, target_name="
     plt.show()
 
 #Load data
-Weather = load_data('Weather')
+Weather = pd.read_csv("data/Weather.csv")
 
 Weather.dtypes
 
@@ -53,7 +53,7 @@ Weather["Time"] = pd.to_timedelta(Weather["Time"]).dt.total_seconds()
 
 weather = Weather.sort_values(by='Time')
 
-indep_vars = ["AirTemp", "Humidity", "WindDirection", "WindSpeed"]
+indep_vars = ["AirTemp", "Humidity", "Rainfall", "WindSpeed"]
 target = "TrackTemp"
 
 split = int(len(weather)*.8)
@@ -86,16 +86,15 @@ X_test_scaled = pd.DataFrame(
 # Add nonlinear features
 
 temp_knot = X_train_scaled["AirTemp"].median()
-windspeed_knot = X_train_scaled["WindSpeed"].median()
+humidity_knot = X_train_scaled["Humidity"].median()
 
 def add_features(df):
     df = df.copy()
 
     df["temp_cubicspline"] = np.maximum(0, df["AirTemp"] - temp_knot)**3
-    df["windspeed_cubicspline"] = np.maximum(0, df["WindSpeed"] - windspeed_knot)**3
+    df["humidity_cubicspline"] = np.maximum(0, df["Humidity"] - humidity_knot)**3
 
     df["temp_windspeed"] = df["AirTemp"] * df["WindSpeed"]
-    df["windspeed_direction"] = df["WindSpeed"] * df["WindDirection"]
     df["temp_humidity"] = df["AirTemp"] * df["Humidity"]
 
     return df
@@ -116,11 +115,11 @@ X_test_full = sm.add_constant(X_test_fe)
 
 model_1 = sm.OLS(y_train, X_train_base)
 results_1 = model_1.fit()
-summarize(results_1)
+print(summarize(results_1))
 
 model_nonlinear = sm.OLS(y_train, X_train_full)
 results_2 = model_nonlinear.fit()
-summarize(results_2)
+print(summarize(results_2))
 
 #Get predictions
 
