@@ -72,4 +72,10 @@ importances = rf_weather.feature_importances_
 
 
 print("test R^2: ",error)
-print("importances: ", importances)
+feature_names = X_train.columns
+feature_importance_df = pd.DataFrame({
+    "feature": feature_names,
+    "importance": importances
+}).sort_values(by="importance", ascending=False)
+
+print(feature_importance_df)
