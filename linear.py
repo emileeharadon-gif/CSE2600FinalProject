@@ -48,45 +48,42 @@ Weather = pd.read_csv("data/Weather.csv")
 
 Weather.dtypes
 
-#Train test split and defining variables
-Weather["Time"] = pd.to_timedelta(Weather["Time"]).dt.total_seconds()
+# Create Race ID
 
-weather = Weather.sort_values(by='Time')
+Weather["RaceID"] = (
+    Weather["Year"].astype(str) + "_" +
+    Weather["Round Number"].astype(str)
+)
 
-indep_vars = ["AirTemp", "Humidity", "Rainfall", "WindSpeed"]
+
+# Split by race
+
+
+race_ids = Weather["RaceID"].unique()
+
+split_idx = int(len(race_ids) * 0.8)
+
+train_races = race_ids[:split_idx]
+test_races = race_ids[split_idx:]
+
+Train = Weather[Weather["RaceID"].isin(train_races)].copy()
+Test = Weather[Weather["RaceID"].isin(test_races)].copy()
+
+#Define variables
+
+indep_vars = ["AirTemp", "Humidity", "WindSpeed"]
 target = "TrackTemp"
 
-split = int(len(weather)*.8)
-Train = weather.iloc[:split]
-Test = weather.iloc[split:]
-
-X_train = Train[indep_vars].copy()
+X_train = Train[indep_vars]
 y_train = Train[target]
 
-X_test = Test[indep_vars].copy()
+X_test = Test[indep_vars]
 y_test = Test[target]
 
-#Scale the data
+# Add nonlinear effects
 
-scaler = StandardScaler()
-
-X_train_scaled = pd.DataFrame(
-    scaler.fit_transform(X_train),
-    columns=X_train.columns,
-    index=X_train.index
-)
-
-X_test_scaled = pd.DataFrame(
-    scaler.transform(X_test),
-    columns=X_test.columns,
-    index=X_test.index
-)
-
-
-# Add nonlinear features
-
-temp_knot = X_train_scaled["AirTemp"].median()
-humidity_knot = X_train_scaled["Humidity"].median()
+temp_knot = X_train["AirTemp"].median()
+humidity_knot = X_train["Humidity"].median()
 
 def add_features(df):
     df = df.copy()
@@ -99,17 +96,34 @@ def add_features(df):
 
     return df
 
-X_train_fe = add_features(X_train_scaled)
-X_test_fe = add_features(X_test_scaled)
+
+X_train_fe = add_features(X_train)
+X_test_fe = add_features(X_test)
+
+#Scale the data with non linear effects as they sometimes get out of control
+
+scaler = StandardScaler()
+
+X_train_scaled = pd.DataFrame(
+    scaler.fit_transform(X_train_fe),
+    columns=X_train_fe.columns,
+    index=X_train_fe.index
+)
+
+X_test_scaled = pd.DataFrame(
+    scaler.transform(X_test_fe),
+    columns=X_test_fe.columns,
+    index=X_test_fe.index
+)
 
 
-# Add intercept 
+# Add intercepts
 
-X_train_base = sm.add_constant(X_train_scaled)
-X_test_base = sm.add_constant(X_test_scaled)
+X_train_base = sm.add_constant(X_train)
+X_test_base = sm.add_constant(X_test)
 
-X_train_full = sm.add_constant(X_train_fe)
-X_test_full = sm.add_constant(X_test_fe)
+X_train_full = sm.add_constant(X_train_scaled)
+X_test_full = sm.add_constant(X_test_scaled)
 
 #Construct models
 
@@ -117,8 +131,8 @@ model_1 = sm.OLS(y_train, X_train_base)
 results_1 = model_1.fit()
 print(summarize(results_1))
 
-model_nonlinear = sm.OLS(y_train, X_train_full)
-results_2 = model_nonlinear.fit()
+model_2 = sm.OLS(y_train, X_train_full)
+results_2 = model_2.fit()
 print(summarize(results_2))
 
 #Get predictions
@@ -130,24 +144,24 @@ predictions_test_2 = predict(X_test_full, results_2)
 
 #Calculate MSE
 
-print("Model 1 (Linear)")
+print("Model 1 (Raw Linear)")
 print('MSE train: ', mse(y_train, predictions_train_1))
 print('MSE test: ', mse(y_test, predictions_test_1))
 
-print("Model 2 (Nonlinear)")
+print("Model 2 (Linear with Nonlinear Effects + Scaling)")
 print('MSE train: ', mse(y_train, predictions_train_2))
 print('MSE test: ', mse(y_test, predictions_test_2))
 
 #Show some plots
 
-plot_avg_actual_vs_predicted_by_feature(X=X_train, 
+plot_avg_actual_vs_predicted_by_feature(X=X_train_fe, 
                                         y=y_train, 
                                         y_pred=predictions_train_2, 
                                         feature="AirTemp", 
                                         target_name="TrackTemp"
                                         )
 
-plot_avg_actual_vs_predicted_by_feature(X=X_train, 
+plot_avg_actual_vs_predicted_by_feature(X=X_train_fe, 
                                         y=y_train, 
                                         y_pred=predictions_train_2, 
                                         feature="Humidity", 
