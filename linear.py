@@ -71,7 +71,7 @@ Test = Weather[Weather["RaceID"].isin(test_races)].copy()
 
 #Define variables
 
-indep_vars = ["AirTemp", "Humidity", "Rainfall", "WindSpeed"]
+indep_vars = ["AirTemp", "Humidity", "WindSpeed"]
 target = "TrackTemp"
 
 X_train = Train[indep_vars]
