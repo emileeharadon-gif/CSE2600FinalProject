@@ -90,11 +90,12 @@ def add_features(df):
     df = df.copy()
 
     df["temp_cubicspline"] = np.maximum(0, df["AirTemp"] - temp_knot)**3
-    df["windspeed_cubicspline"] = np.maximum(0, df["WindSpeed"] - windspeed_knot)**3
-    df["humidity_cubicspline"] = np.maximum(0, df["Humidity"] - humidity_knot)**3
+    
 
     df["temp_windspeed"] = df["AirTemp"] * df["WindSpeed"]
     df["temp_humidity"] = df["AirTemp"] * df["Humidity"]
+    
+
 
     return df
 
