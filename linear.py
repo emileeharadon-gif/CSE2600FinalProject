@@ -154,9 +154,9 @@ print('MSE test: ', mse(y_test, predictions_test_2))
 
 #Show some plots
 
-plot_avg_actual_vs_predicted_by_feature(X=X_train_fe, 
+plot_avg_actual_vs_predicted_by_feature(X=X_train, 
                                         y=y_train, 
-                                        y_pred=predictions_train_2, 
+                                        y_pred=predictions_train_1, 
                                         feature="AirTemp", 
                                         target_name="TrackTemp"
                                         )
@@ -164,6 +164,7 @@ plot_avg_actual_vs_predicted_by_feature(X=X_train_fe,
 plot_avg_actual_vs_predicted_by_feature(X=X_train_fe, 
                                         y=y_train, 
                                         y_pred=predictions_train_2, 
-                                        feature="Humidity", 
+                                        feature="AirTemp", 
                                         target_name="TrackTemp"
                                         )
+
