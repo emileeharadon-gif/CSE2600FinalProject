@@ -83,12 +83,14 @@ y_test = Test[target]
 # Add nonlinear effects
 
 temp_knot = X_train["AirTemp"].median()
+windspeed_knot = X_train["WindSpeed"].median()
 humidity_knot = X_train["Humidity"].median()
 
 def add_features(df):
     df = df.copy()
 
     df["temp_cubicspline"] = np.maximum(0, df["AirTemp"] - temp_knot)**3
+    df["windspeed_cubicspline"] = np.maximum(0, df["WindSpeed"] - windspeed_knot)**3
     df["humidity_cubicspline"] = np.maximum(0, df["Humidity"] - humidity_knot)**3
 
     df["temp_windspeed"] = df["AirTemp"] * df["WindSpeed"]
