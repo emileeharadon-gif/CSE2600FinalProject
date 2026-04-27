@@ -71,7 +71,7 @@ Test = Weather[Weather["RaceID"].isin(test_races)].copy()
 
 #Define variables
 
-indep_vars = ["AirTemp", "Humidity", "WindSpeed"]
+indep_vars = ["AirTemp", "Humidity", "Pressure", "WindSpeed"]
 target = "TrackTemp"
 
 X_train = Train[indep_vars]
@@ -91,9 +91,9 @@ def add_features(df):
 
     df["temp_cubicspline"] = np.maximum(0, df["AirTemp"] - temp_knot)**3
     
-
     df["temp_windspeed"] = df["AirTemp"] * df["WindSpeed"]
     df["temp_humidity"] = df["AirTemp"] * df["Humidity"]
+    df["temp_pressure"] = df["AirTemp"] * df["Pressure"]
     
 
 
